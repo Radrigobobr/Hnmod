@@ -5,17 +5,22 @@ on:
   push:
     paths:
       - 'mods/ak-prototype/**'
-      - 'crates/horizon-mod-sdk/**'
       - '.github/workflows/build-ak-prototype.yml'
 
 jobs:
   android-arm64:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout Hnmod
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
+      - name: Checkout Horizon Android SDK
+        run: |
+          git clone --depth 1 --branch android-port \
+            https://github.com/Rayan-XOO/horizon.git horizon-sdk
+
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android
@@ -30,12 +35,12 @@ jobs:
           sdkmanager --install "ndk;27.2.12479018"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
 
-      - name: Build .hnmod
+      - name: Build AK Prototype
         run: bash mods/ak-prototype/build.sh
 
-      - name: Upload .hnmod
+      - name: Upload AK Prototype
         uses: actions/upload-artifact@v4
         with:
-          name: ak-prototype-hnmod
+          name: AK-Prototype-7.42
           path: mods/ak-prototype/target/ak_prototype.hnmod
           if-no-files-found: error

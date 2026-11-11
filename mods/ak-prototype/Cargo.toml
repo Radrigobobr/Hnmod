@@ -4,13 +4,13 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT"
 publish = false
-description = "AK Prototype automatic rifle for Horizon SDK ABI 4"
+description = "AK Prototype 7.42 for Horizon Android ABI 4"
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-horizon-mod-sdk = { path = "../../crates/horizon-mod-sdk" }
+horizon-mod-sdk = { path = "../../horizon-sdk/crates/horizon-mod-sdk" }
 
 [profile.release]
 strip = true
