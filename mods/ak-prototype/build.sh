@@ -17,8 +17,9 @@ HORIZON_REV="$(git -C "$SDK" rev-parse HEAD)"
 rustup target add aarch64-linux-android
 cargo install cargo-ndk --locked
 
-cargo ndk -t arm64-v8a -P 26 build --release \
-    --manifest-path "$HERE/Cargo.toml"
+cd "$HERE"
+
+cargo ndk -t arm64-v8a -P 26 build --release
 
 LIB="$HERE/target/aarch64-linux-android/release/libak_prototype.so"
 test -f "$LIB"
