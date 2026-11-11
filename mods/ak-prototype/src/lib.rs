@@ -32,9 +32,9 @@ impl AkPrototype {
         }
         let yaw = p.yaw.to_radians();
         let pitch = p.pitch.to_radians();
-        let dx = -yaw.sin() * pitch.cos();
-        let dy = -pitch.sin();
-        let dz = yaw.cos() * pitch.cos();
+        let dx = (-yaw.sin() * pitch.cos()) as f64;
+        let dy = (-pitch.sin()) as f64;
+        let dz = (yaw.cos() * pitch.cos()) as f64;
         let speed = 3.2_f64;
         let command = format!(
             "summon minecraft:arrow {:.3} {:.3} {:.3} {{Motion:[{:.4}d,{:.4}d,{:.4}d],pickup:0b,damage:4.0d}}",
