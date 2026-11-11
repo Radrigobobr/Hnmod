@@ -1,28 +1,41 @@
 name: Build AK Prototype
+
 on:
   workflow_dispatch:
   push:
     paths:
       - 'mods/ak-prototype/**'
       - 'crates/horizon-mod-sdk/**'
+      - '.github/workflows/build-ak-prototype.yml'
+
 jobs:
   android-arm64:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android
-      - uses: android-actions/setup-android@v3
-      - name: Install NDK
-        run: sdkmanager "ndk;27.2.12479018"
-      - name: Install cargo-ndk
-        run: cargo install cargo-ndk --locked
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android NDK
+        run: |
+          sdkmanager --install "ndk;27.2.12479018"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
       - name: Build .hnmod
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.2.12479018
         run: bash mods/ak-prototype/build.sh
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload .hnmod
+        uses: actions/upload-artifact@v4
         with:
           name: ak-prototype-hnmod
           path: mods/ak-prototype/target/ak_prototype.hnmod
+          if-no-files-found: error
