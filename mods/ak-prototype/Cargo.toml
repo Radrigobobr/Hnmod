@@ -1,0 +1,19 @@
+[package]
+name = "ak-prototype"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+description = "AK Prototype automatic rifle for Horizon SDK ABI 4"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+horizon-mod-sdk = { path = "../../crates/horizon-mod-sdk" }
+
+[profile.release]
+strip = true
+panic = "unwind"
+
+[workspace]

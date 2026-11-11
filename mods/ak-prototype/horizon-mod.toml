@@ -1,0 +1,8 @@
+id = "ak_prototype"
+name = "AK Prototype"
+version = "0.1.0"
+description = "Experimental AK-pattern rifle, 7.42 mm"
+authors = ["AK Prototype"]
+api = "0.2"
+side = "both"
+capabilities = ["registries"]

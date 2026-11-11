@@ -1,0 +1,28 @@
+name: Build AK Prototype
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'mods/ak-prototype/**'
+      - 'crates/horizon-mod-sdk/**'
+jobs:
+  android-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - uses: android-actions/setup-android@v3
+      - name: Install NDK
+        run: sdkmanager "ndk;27.2.12479018"
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+      - name: Build .hnmod
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.2.12479018
+        run: bash mods/ak-prototype/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ak-prototype-hnmod
+          path: mods/ak-prototype/target/ak_prototype.hnmod
