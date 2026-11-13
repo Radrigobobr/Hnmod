@@ -1,0 +1,112 @@
+name: Build Android HNMOD
+
+on:
+  workflow_dispatch:
+    inputs:
+      android_crate:
+        description: "Путь к Android Rust crate (Cargo.toml + NativeMod)"
+        required: true
+        default: "android-mods/orbital-android"
+      source_bundle:
+        description: "Путь к исходному .hnmod, который нужно дополнить Android-библиотекой"
+        required: true
+        default: "mods/orbital-starling.hnmod"
+  push:
+    paths:
+      - "android-mods/**"
+      - "mods/**"
+      - ".github/workflows/build-android-hnmod.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-hnmod-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ARM64 Android mod
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout mod repository
+        uses: actions/checkout@v4
+
+      - name: Validate inputs
+        env:
+          ANDROID_CRATE: ${{ github.event.inputs.android_crate || 'android-mods/orbital-android' }}
+          SOURCE_BUNDLE: ${{ github.event.inputs.source_bundle || 'mods/orbital-starling.hnmod' }}
+        run: |
+          set -euo pipefail
+          test -f "$SOURCE_BUNDLE" || {
+            echo "::error::Не найден .hnmod: $SOURCE_BUNDLE"
+            echo "Добавь исходный файл в репозиторий по указанному пути или измени source_bundle при запуске."
+            exit 1
+          }
+          test -f "$ANDROID_CRATE/Cargo.toml" || {
+            echo "::error::Не найден Android Rust crate: $ANDROID_CRATE/Cargo.toml"
+            echo "Исходный .hnmod сам по себе не содержит Android NativeMod crate. Нужен отдельный crate с horizon-native-abi."
+            exit 1
+          }
+          echo "ANDROID_CRATE=$ANDROID_CRATE" >> "$GITHUB_ENV"
+          echo "SOURCE_BUNDLE=$SOURCE_BUNDLE" >> "$GITHUB_ENV"
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Install Android SDK and NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK r28c
+        run: |
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;35.0.0" "ndk;28.2.13676358"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/28.2.13676358" >> "$GITHUB_ENV"
+          echo "$ANDROID_SDK_ROOT/ndk/28.2.13676358" >> "$GITHUB_PATH"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.90.0"
+          targets: aarch64-linux-android
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            ${{ github.event.inputs.android_crate || 'android-mods/orbital-android' }} -> target
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Install Horizon mod builder
+        run: |
+          git clone --depth 1 --branch android-port https://github.com/Rayan-XOO/horizon.git "$RUNNER_TEMP/horizon-sdk"
+          cargo install --path "$RUNNER_TEMP/horizon-sdk/crates/cargo-horizon-mod" --locked
+
+      - name: Build Android ARM64 library and bundle it
+        run: |
+          set -euo pipefail
+          cd "$ANDROID_CRATE"
+          cargo horizon-mod android --bundle "$GITHUB_WORKSPACE/$SOURCE_BUNDLE"
+
+      - name: Verify output
+        run: |
+          set -euo pipefail
+          find "$ANDROID_CRATE/target/horizon-mod" -maxdepth 2 -type f -name '*.hnmod' -print
+          test -n "$(find "$ANDROID_CRATE/target/horizon-mod" -maxdepth 2 -type f -name '*.hnmod' -print -quit)" || {
+            echo "::error::Builder did not produce an .hnmod artifact"
+            exit 1
+          }
+
+      - name: Upload Android HNMOD
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-android-arm64-hnmod
+          path: ${{ github.event.inputs.android_crate || 'android-mods/orbital-android' }}/target/horizon-mod/*.hnmod
+          if-no-files-found: error
+          retention-days: 30
